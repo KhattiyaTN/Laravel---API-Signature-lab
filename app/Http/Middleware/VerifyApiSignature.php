@@ -6,6 +6,8 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Models\ApiClient;
+
 class VerifyApiSignature
 {
     /**
@@ -15,18 +17,18 @@ class VerifyApiSignature
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->header('X-API-Key');
+        $apiKey = $request->header('X-API-Key');
         $signature = $request->header('X-Signature');
         $timestamp = $request->header('X-Timestamp');
         $payload = $request->getContent();
         $currentTime = time();
 
-        $validApiKey = '123456';
-        $secret = 'my_secret';
-
-        if (!$token) {
+        if (!$apiKey) {
             return response()->json(['error' => 'Missing API Key'], 400);
         }
+
+        $client = ApiClient::where('api_key', $apiKey)->first();
+        
         if (!$timestamp) {
             return response()->json(['error' => 'Missing Timestamp'], 400);
         }
@@ -36,11 +38,11 @@ class VerifyApiSignature
         if (!$signature) {
             return response()->json(['error' => 'Missing Signature'], 400);
         }
-        if ($token !== $validApiKey) {
+        if (!$client) {
             return response()->json(['error' => 'Invalid API Key'], 403);
         }
 
-        $expectedSignature = hash_hmac('sha256', $timestamp . $payload,  $secret);
+        $expectedSignature = hash_hmac('sha256', $timestamp . $payload,  $client->api_secret);
 
         if (!hash_equals($expectedSignature, $signature)) {
             \Log::warning('Invalid signature', [
