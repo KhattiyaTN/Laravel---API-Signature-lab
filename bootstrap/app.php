@@ -12,9 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias(['verify.signature' => \App\Http\Middleware\VerifyApiSignature::class]);
+        $middleware->alias([
+            'verify.signature' => \App\Http\Middleware\VerifyApiSignature::class,
+            'check.env' => \App\Http\Middleware\CheckEnv::class
+        ]);
 
-        $middleware->group('api', ['verify.signature']);
+        $middleware->group('api', [
+            'verify.signature',
+            'check.env'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
